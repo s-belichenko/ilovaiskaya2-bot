@@ -1,0 +1,42 @@
+# Название рабочего процесса
+name: Основной процесс
+
+# События, запускающие процесс
+on:
+  # Git push в ветку main
+  push:
+    branches:
+      - main
+
+# Задания
+jobs:
+  # Название задания
+  Main-Job:
+    # Запускать на последней версии Ubuntu
+    runs-on: ubuntu-latest
+
+    # Шаги
+    steps:
+      # Загружаем код репозитория в окружение
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Протестируем код
+      - name: golint
+        uses: Jerome1337/golint-action@v1.0.2
+        with:
+          golint-path: './*.go'
+
+      # Загружаем serverless-функцию в Yandex Cloud
+      - name: Deploy Function
+        id: sls-func
+        uses: yc-actions/yc-sls-function@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          folder-id: ${{ secrets.YC_FOLDER_ID }}
+          function-name: ${{ secrets.YC_FUNCTION_NAME }}
+          runtime: ${{ vars.FUNCTION_RUNTIME }}
+          memory: ${{ vars.FUNCTION_MEMORY }}
+          entrypoint: 'main.Handler'
+          include: |
+            ./*.go
